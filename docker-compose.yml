@@ -1,0 +1,10 @@
+services:
+  weather_bot:
+    build: .
+    container_name: weather_bot
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      # Ma'lumotlar bazasini saqlab qolish
+      - ./weather_bot.db:/app/weather_bot.db

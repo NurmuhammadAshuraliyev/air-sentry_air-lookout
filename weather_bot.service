@@ -1,0 +1,16 @@
+[Unit]
+Description=Mukammal Ob-havo Telegram Boti
+After=network.target
+
+[Service]
+Type=simple
+User=root
+# Loyihangiz serverda qayerda joylashgan bo'lsa, o'sha papka yo'lini yozing:
+WorkingDirectory=/root/weather_bot
+ExecStart=/root/weather_bot/venv/bin/python bot.py
+Restart=always
+RestartSec=5
+EnvironmentFile=/root/weather_bot/.env
+
+[Install]
+WantedBy=multi-user.target

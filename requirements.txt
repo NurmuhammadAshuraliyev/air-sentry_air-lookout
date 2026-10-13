@@ -1,0 +1,8 @@
+aiogram==3.31.0
+aiohttp==3.14.5
+requests==2.34.2
+python-dotenv==1.2.4
+matplotlib==3.11.2
+SpeechRecognition==3.17.0
+imageio-ffmpeg==0.6.0
+aiofiles==25.1.0
