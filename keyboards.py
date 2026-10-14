@@ -30,7 +30,7 @@ def get_main_keyboard(lang: str = "uz") -> ReplyKeyboardMarkup:
     if lang == "ru":
         kb = [
             [
-                KeyboardButton(text="📍 Моя локация (Телефон)", request_location=True),
+                KeyboardButton(text="📍 Отправить локацию (Авто)", request_location=True),
                 KeyboardButton(text="🏙 Области и Районы"),
             ],
             [
@@ -53,7 +53,7 @@ def get_main_keyboard(lang: str = "uz") -> ReplyKeyboardMarkup:
     elif lang == "en":
         kb = [
             [
-                KeyboardButton(text="📍 My Location (Phone)", request_location=True),
+                KeyboardButton(text="📍 Send Location (Auto)", request_location=True),
                 KeyboardButton(text="🏙 Regions & Districts"),
             ],
             [
@@ -76,7 +76,7 @@ def get_main_keyboard(lang: str = "uz") -> ReplyKeyboardMarkup:
     else:
         kb = [
             [
-                KeyboardButton(text="📍 Joylashuv (Telefonda)", request_location=True),
+                KeyboardButton(text="📍 Joylashuvni yuborish (Avtomatik)", request_location=True),
                 KeyboardButton(text="🏙 Viloyat va Tumanlar"),
             ],
             [
@@ -178,8 +178,8 @@ def get_districts_inline_keyboard(reg_idx: int, lang: str = "uz") -> InlineKeybo
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def get_alert_settings_keyboard(enabled: bool, current_hour: int = 8, lang: str = "uz") -> InlineKeyboardMarkup:
-    """Avtomatik xabarnoma sozlamalari klaviaturasi."""
+def get_alert_settings_keyboard(enabled: bool, current_hour: int = 6, lang: str = "uz") -> InlineKeyboardMarkup:
+    """Avtomatik xabarnoma sozlamalari klaviaturasi (standart 06:00)."""
     if lang == "ru":
         status_text = "🟢 Включено (Выключить)" if enabled else "🔴 Выключено (Включить)"
         test_text = "🔄 Протестировать сейчас"
@@ -198,11 +198,12 @@ def get_alert_settings_keyboard(enabled: bool, current_hour: int = 8, lang: str 
     buttons = [
         [InlineKeyboardButton(text=status_text, callback_data=action_data)],
         [
+            InlineKeyboardButton(text=mark(6), callback_data="alert_time:6"),
             InlineKeyboardButton(text=mark(7), callback_data="alert_time:7"),
             InlineKeyboardButton(text=mark(8), callback_data="alert_time:8"),
-            InlineKeyboardButton(text=mark(9), callback_data="alert_time:9"),
         ],
         [
+            InlineKeyboardButton(text=mark(9), callback_data="alert_time:9"),
             InlineKeyboardButton(text=mark(12), callback_data="alert_time:12"),
             InlineKeyboardButton(text=mark(18), callback_data="alert_time:18"),
             InlineKeyboardButton(text=mark(21), callback_data="alert_time:21"),

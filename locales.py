@@ -148,14 +148,13 @@ TEXTS = {
         "welcome": (
             "Assalomu alaykum, **{name}**! 👋\n\n"
             "🌦 **Ob-havo, Shamol va Yog'ingarchilik Botiga xush kelibsiz!**\n\n"
-            "Bu bot orqali O'zbekistonning barcha **viloyat va tumanlari** bo'yicha:\n"
-            "• 💨 **Shamolning tezligi, yo'nalishi va kuchli zarbalarini**\n"
-            "• 🌧 **Yog'ingarchilik (yomg'ir, qor) ehtimoli va kelgusi soatlardagi miqdorini**\n"
-            "• 🏙 Istalgan shahar va tuman bo'yicha eng aniq hisobotni olasiz!\n\n"
-            "🔔 **Avtomatik xabar:** O'z tumaningizni bir marta tanlasangiz, bot har kuni sizga ob-havoni avtomatik yuborib turadi!\n\n"
-            "Pastdagi menyudan kerakli bo'limni tanlang 👇"
+            "📍 **Aniq turgan joyingiz ob-havosini bilish uchun:**\n"
+            "Pastdagi **'📍 Joylashuvni yuborish (Avtomatik)'** tugmasini bosing!\n\n"
+            "⏰ **Avtomatik xabarnoma:**\n"
+            "Bot har kuni ertalab soat **06:00** da sizga hududingiz ob-havosini avtomatik yuboradi.\n\n"
+            "🎙 **Ovozli xabar:** Shahar yoki tuman nomini ovozli qilib yuborsangiz ham (masalan: *'Toshkentda havo qanday'*, *'Chilonzor'*), bot darhol tushunadi va aytadi!"
         ),
-        "btn_location": "📍 Joylashuv (Telefonda)",
+        "btn_location": "📍 Joylashuvni yuborish (Avtomatik)",
         "btn_regions": "🏙 Viloyat va Tumanlar",
         "btn_wind_rain": "🌪 Shamol & Yog'ingarchilik",
         "btn_search": "🔍 Qidirish",
@@ -234,14 +233,13 @@ TEXTS = {
         "welcome": (
             "Здравствуйте, **{name}**! 👋\n\n"
             "🌦 **Добро пожаловать в бот Погоды, Ветра и Осадков!**\n\n"
-            "С помощью этого бота по всем **областям и районам** Узбекистана вы узнаете:\n"
-            "• 💨 **Скорость, направление и сильные порывы ветра**\n"
-            "• 🌧 **Вероятность и почасовой прогноз осадков (дождь, снег)**\n"
-            "• 🏙 Точный прогноз по любому городу и району!\n\n"
-            "🔔 **Автоматические уведомления:** Выберите свой район один раз, и бот будет ежедневно присылать вам утренний прогноз!\n\n"
-            "Выберите нужный раздел в меню ниже 👇"
+            "📍 **Для точного определения погоды в вашей локации:**\n"
+            "Нажмите кнопку **'📍 Отправить локацию (Авто)'** внизу!\n\n"
+            "⏰ **Автоматические уведомления:**\n"
+            "Бот каждое утро в **06:00** будет автоматически присылать вам прогноз погоды.\n\n"
+            "🎙 **Голосовой поиск:** Вы можете отправить голосовое сообщение (например: *'Какая погода в Ташкенте'*, *'Чиланзар'*), и бот сразу ответит!"
         ),
-        "btn_location": "📍 Моя локация (Телефон)",
+        "btn_location": "📍 Отправить локацию (Авто)",
         "btn_regions": "🏙 Области и Районы",
         "btn_wind_rain": "🌪 Ветер и Осадки",
         "btn_search": "🔍 Поиск",
@@ -251,11 +249,12 @@ TEXTS = {
         "help_text": (
             "📖 **Руководство пользователя:**\n\n"
             "1. 🏙 **Области и Районы** — Выбор любой области и конкретного района Узбекистана.\n"
-            "2. 📍 **Моя локация (Телефон)** — Определение погоды по вашему точному GPS на телефоне.\n"
-            "3. 🌪 **Ветер и Осадки** — Детальная сводка по ветру и осадкам для выбранного региона.\n"
-            "4. 🔍 **Поиск** — Поиск любого города или поселка по названию.\n"
-            "5. 🔔 **Авто-уведомления** — Ежедневный утренний прогноз в заданное время.\n"
-            "6. 🌐 **Сменить язык** — Переключение на узбекский, русский или английский."
+            "2. 📍 **Отправить локацию (Авто)** — Определение погоды по вашему точному GPS на телефоне.\n"
+            "3. 🎙 **Голосовые сообщения** — Скажите голосом город или район, бот поймет и ответит!\n"
+            "4. 🌪 **Ветер и Осадки** — Детальная сводка по ветру и осадкам для выбранного региона.\n"
+            "5. 🔍 **Поиск** — Поиск любого города или поселка по названию.\n"
+            "6. 🔔 **Авто-уведомления** — Ежедневный утренний прогноз в 06:00.\n"
+            "7. 🌐 **Сменить язык** — Переключение на узбекский, русский или английский."
         ),
         "regions_prompt": "🏙 Список регионов Узбекистана.\nВыберите область, затем откроется список её районов:",
         "districts_prompt": "📍 Районы и города области **{reg_name}**:\nПогоду какого района вы хотите узнать?",
@@ -318,14 +317,13 @@ TEXTS = {
         "welcome": (
             "Hello, **{name}**! 👋\n\n"
             "🌦 **Welcome to the Weather, Wind & Precipitation Bot!**\n\n"
-            "With this bot across all **regions and districts** of Uzbekistan you get:\n"
-            "• 💨 **Wind speed, direction, and severe gusts**\n"
-            "• 🌧 **Precipitation probability & hourly forecast (rain, snow)**\n"
-            "• 🏙 Detailed forecast for any district and city!\n\n"
-            "🔔 **Auto-alerts:** Select your district once, and the bot will send daily morning weather reports automatically!\n\n"
-            "Select an option from the menu below 👇"
+            "📍 **To get weather for your exact location:**\n"
+            "Tap **'📍 Send Location (Auto)'** below!\n\n"
+            "⏰ **Daily Alerts:**\n"
+            "The bot will automatically send morning weather updates every day at **06:00 AM**.\n\n"
+            "🎙 **Voice message:** Speak a city or district name, and the bot will understand!"
         ),
-        "btn_location": "📍 My Location (Phone)",
+        "btn_location": "📍 Send Location (Auto)",
         "btn_regions": "🏙 Regions & Districts",
         "btn_wind_rain": "🌪 Wind & Precipitation",
         "btn_search": "🔍 Search",

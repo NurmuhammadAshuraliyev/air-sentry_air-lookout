@@ -29,6 +29,7 @@ from weather_service import get_weather_forecast, search_city_geocoding, format_
 from smart_advisor import get_air_quality, analyze_air_quality, generate_smart_lifestyle_advice
 from chart_generator import generate_24h_weather_chart, generate_7day_weather_chart
 from voice_service import transcribe_telegram_voice
+from nlp_service import resolve_query_location
 from locales import t, LANGUAGES
 from keyboards import (
     get_main_keyboard,
@@ -73,9 +74,9 @@ def clean_query_text(raw_text: str) -> str:
 
 
 def get_auto_alert_footer(user_id: int, loc_name: str, lang: str = "uz") -> str:
-    """Foydalanuvchiga ob-havo qachon kelishi haqidagi eslatma."""
+    """Foydalanuvchiga ob-havo qachon kelishi haqidagi eslatma (standart 06:00)."""
     user = db.get_user(user_id)
-    hour = user.get("alert_hour", 8) if user else 8
+    hour = user.get("alert_hour", 6) if user else 6
     enabled = bool(user.get("alerts_enabled", 1)) if user else True
 
     if enabled:
@@ -99,17 +100,42 @@ async def send_weather_with_actions(target_msg: types.Message, user_id: int, lat
 
 @dp.message(CommandStart())
 async def cmd_start(message: types.Message):
-    """Start bosilganda til tanlash chiqadi."""
-    welcome_prompt = (
-        "🇺🇿 **Assalomu alaykum! Tilni tanlang:**\n"
-        "🇷🇺 **Здравствуйте! Выберите язык:**\n"
-        "🇬🇧 **Welcome! Choose your language:**"
-    )
+    """Start bosilganda avtomatik ro'yxatga oladi, 06:00 xabarnomasini yoqadi va asosiy menyuni chiqaradi."""
+    user = message.from_user
+    lang = db.get_user_lang(user.id)
+
+    # 1. Standart Toshkent joylashuvi va 06:00 xabarnomasini bazaga kiritish
+    user_info = db.get_user(user.id)
+    if not user_info:
+        db.save_user_location(
+            user_id=user.id,
+            lat=41.311081,
+            lon=69.240562,
+            location_name="Toshkent shahri",
+            username=user.username or "",
+            full_name=user.full_name or "",
+            alert_hour=6
+        )
+        user_info = db.get_user(user.id)
+
+    # 2. Xush kelibsiz xabari va Joylashuvni yuborish tugmasi
+    welcome_msg = t("welcome", lang, name=user.first_name)
     await message.answer(
-        welcome_prompt,
-        reply_markup=get_lang_inline_keyboard(),
+        welcome_msg,
+        reply_markup=get_main_keyboard(lang),
         parse_mode="Markdown"
     )
+
+    # 3. Darhol joriy joylashuv ob-havosini ko'rsatish
+    lat = user_info.get("lat", 41.311081)
+    lon = user_info.get("lon", 69.240562)
+    loc_name = user_info.get("location_name", "Toshkent shahri")
+
+    try:
+        wait_msg = await message.answer(t("analyzing", lang))
+        await send_weather_with_actions(wait_msg, user.id, lat, lon, loc_name, is_edit=True)
+    except Exception as e:
+        logger.error(f"Start ob-havo yuborish xatosi: {e}")
 
 
 @dp.callback_query(F.data.startswith("set_lang:"))
@@ -119,13 +145,19 @@ async def handle_set_language(call: types.CallbackQuery):
     user = call.from_user
 
     db.set_user_language(user.id, lang)
+    user_info = db.get_user(user.id)
+    lat = user_info.get("lat", 41.311081) if user_info else 41.311081
+    lon = user_info.get("lon", 69.240562) if user_info else 69.240562
+    loc_name = user_info.get("location_name", "Toshkent shahri") if user_info else "Toshkent shahri"
+
     db.save_user_location(
         user_id=user.id,
-        lat=41.311081,
-        lon=69.240562,
-        location_name="Toshkent shahri",
+        lat=lat,
+        lon=lon,
+        location_name=loc_name,
         username=user.username or "",
-        full_name=user.full_name or ""
+        full_name=user.full_name or "",
+        alert_hour=6
     )
 
     await call.answer(t("lang_selected", lang))
@@ -177,53 +209,56 @@ async def handle_voice_message(message: types.Message):
         await wait_msg.edit_text(f"❌ {text}")
         return
 
-    # Ovozdan tushunilgan matn
-    cleaned_query = clean_query_text(text)
-    await wait_msg.edit_text(
-        f"🎙 **Siz dedingiz:** \"_{text}_\"\n🔍 \"{cleaned_query}\" qidirilmoqda..."
-        if lang == "uz" else (
-            f"🎙 **Вы сказали:** \"_{text}_\"\n🔍 Поиск \"{cleaned_query}\"..."
-            if lang == "ru" else f"🎙 **You said:** \"_{text}_\"\n🔍 Searching \"{cleaned_query}\"..."
-        ),
-        parse_mode="Markdown"
+    # Aqlli NLP tahlil (O'zbekiston viloyatlari, tumanlari yoki umumiy savollar)
+    loc_res = await resolve_query_location(text, message.from_user.id, lang=lang)
+
+    if loc_res["status"] != "ok":
+        await wait_msg.edit_text(
+            f"🎙 Eshitildi: \"_{text}_\", lekin hudud aniqlanmadi.\n"
+            f"Iltimos, viloyat yoki tuman nomini aniqroq ayting (masalan: *'Toshkent'*, *'Chilonzor'*, *'Samarqand'*)."
+            if lang == "uz" else (
+                f"🎙 Распознано: \"_{text}_\", но регион не определен.\n"
+                f"Пожалуйста, назовите город или район четче."
+                if lang == "ru" else f"🎙 Heard: \"_{text}_\", but location was not recognized."
+            ),
+            parse_mode="Markdown"
+        )
+        return
+
+    lat = loc_res["lat"]
+    lon = loc_res["lon"]
+    loc_name = loc_res["name"]
+
+    # Foydalanuvchi joylashuvini yangilash va 06:00 xabarnomasini yoqish
+    db.save_user_location(
+        user_id=message.from_user.id,
+        lat=lat,
+        lon=lon,
+        location_name=loc_name,
+        username=message.from_user.username or "",
+        full_name=message.from_user.full_name or "",
+        alert_hour=6
     )
 
-    try:
-        cities = await search_city_geocoding(cleaned_query, lang=lang)
-        if not cities:
-            # Agar tozalangan natija bermasa, to'liq matn bilan urinish
-            cities = await search_city_geocoding(text, lang=lang)
-
-        if not cities:
-            await wait_msg.edit_text(
-                f"🎙 Eshitildi: \"_{text}_\", lekin bunday shahar yoki tuman topilmadi.\nIltimos, nomni aniqroq ayting."
-                if lang == "uz" else (
-                    f"🎙 Распознано: \"_{text}_\", но такой регион не найден.\nПопробуйте повторить четче."
-                    if lang == "ru" else f"🎙 Heard: \"_{text}_\", but location was not found."
-                ),
-                parse_mode="Markdown"
-            )
-            return
-
-        city = cities[0]
-        db.save_user_location(
-            user_id=message.from_user.id,
-            lat=city["lat"],
-            lon=city["lon"],
-            location_name=city["name"],
-            username=message.from_user.username or "",
-            full_name=message.from_user.full_name or ""
+    heard_prefix = (
+        f"🎙 **Siz dedingiz:** \"_{text}_\"\n\n"
+        if lang == "uz" else (
+            f"🎙 **Вы сказали:** \"_{text}_\"\n\n"
+            if lang == "ru" else f"🎙 **You said:** \"_{text}_\"\n\n"
         )
-        await send_weather_with_actions(wait_msg, message.from_user.id, city["lat"], city["lon"], city["name"], is_edit=True)
+    )
 
-    except Exception as e:
-        logger.error(f"Ovozli qidiruv xatosi: {e}")
-        await wait_msg.edit_text("❌ Xatolik yuz berdi.")
+    weather = await get_weather_forecast(lat, lon, loc_name, lang=lang)
+    footer = get_auto_alert_footer(message.from_user.id, loc_name, lang=lang)
+    full_text = heard_prefix + weather["report"] + footer
+    kb = get_weather_action_inline_keyboard(lat, lon, lang=lang)
+
+    await wait_msg.edit_text(full_text, reply_markup=kb, parse_mode="Markdown")
 
 
 @dp.message(F.location)
 async def handle_location(message: types.Message):
-    """GPS joylashuv kelganda."""
+    """GPS joylashuv kelganda avtomatik saqlash va 06:00 xabarnomasini belgilash."""
     lang = db.get_user_lang(message.from_user.id)
     lat = message.location.latitude
     lon = message.location.longitude
@@ -235,8 +270,22 @@ async def handle_location(message: types.Message):
         lon=lon,
         location_name=loc_name,
         username=message.from_user.username or "",
-        full_name=message.from_user.full_name or ""
+        full_name=message.from_user.full_name or "",
+        alert_hour=6
     )
+
+    confirm_msg = (
+        "📍 **Joylashuvingiz muvaffaqiyatli saqlandi!**\n"
+        "⏰ Har kuni ertalab soat **06:00** da sizga ushbu hudud ob-havosi avtomatik yuboriladi."
+        if lang == "uz" else (
+            "📍 **Ваша локация успешно сохранена!**\n"
+            "⏰ Каждое утро в **06:00** вам будет автоматически приходить прогноз погоды."
+            if lang == "ru" else
+            "📍 **Location saved successfully!**\n"
+            "⏰ Daily morning weather update will be sent at **06:00 AM**."
+        )
+    )
+    await message.answer(confirm_msg, parse_mode="Markdown")
 
     wait_msg = await message.answer(t("analyzing", lang))
     try:
@@ -298,7 +347,8 @@ async def handle_region_center_chosen(call: types.CallbackQuery):
         lon=coords["lon"],
         location_name=reg_name,
         username=user.username or "",
-        full_name=user.full_name or ""
+        full_name=user.full_name or "",
+        alert_hour=6
     )
 
     await call.answer(f"{reg_name}")
@@ -331,7 +381,8 @@ async def handle_district_chosen(call: types.CallbackQuery):
         lon=coords["lon"],
         location_name=full_loc_name,
         username=user.username or "",
-        full_name=user.full_name or ""
+        full_name=user.full_name or "",
+        alert_hour=6
     )
 
     await call.answer(f"{dist_name}")
@@ -646,33 +697,25 @@ async def handle_search_button(message: types.Message, state: FSMContext):
 @dp.message(WeatherState.waiting_for_city)
 @dp.message(F.text & ~F.text.startswith("/") & ~F.text.startswith("📍") & ~F.text.startswith("🏙") & ~F.text.startswith("🌪") & ~F.text.startswith("🔍") & ~F.text.startswith("🔔") & ~F.text.startswith("🌐") & ~F.text.startswith("ℹ️") & ~F.text.startswith("📊") & ~F.text.startswith("💡") & ~F.text.startswith("📅"))
 async def handle_city_search_text(message: types.Message, state: FSMContext):
-    """Shahar nomini qidirish."""
+    """Shahar nomini matndan qidirish (NLP + Geocoding)."""
     lang = db.get_user_lang(message.from_user.id)
-    query = clean_query_text(message.text.strip())
+    raw_query = message.text.strip()
     await state.clear()
 
-    wait_msg = await message.answer(t("searching", lang, query=query))
+    wait_msg = await message.answer(t("searching", lang, query=raw_query))
 
     try:
-        cities = await search_city_geocoding(query, lang=lang)
-        if not cities:
-            await wait_msg.edit_text(t("not_found", lang, query=query))
+        loc_res = await resolve_query_location(raw_query, message.from_user.id, lang=lang)
+
+        if loc_res["status"] != "ok":
+            await wait_msg.edit_text(t("not_found", lang, query=raw_query))
             return
 
-        if len(cities) == 1:
-            city = cities[0]
-            db.save_user_location(
-                user_id=message.from_user.id,
-                lat=city["lat"],
-                lon=city["lon"],
-                location_name=city["name"],
-                username=message.from_user.username or "",
-                full_name=message.from_user.full_name or ""
-            )
-            await send_weather_with_actions(wait_msg, message.from_user.id, city["lat"], city["lon"], city["name"], is_edit=True)
-        else:
+        # Agar bir nechta geocoding natijasi bo'lsa
+        if loc_res.get("source") == "geocoding" and len(loc_res.get("cities", [])) > 1:
+            cities = loc_res["cities"]
             buttons = []
-            for idx, c in enumerate(cities[:5]):
+            for c in cities[:5]:
                 buttons.append([
                     InlineKeyboardButton(
                         text=f"📍 {c['name']}",
@@ -681,6 +724,24 @@ async def handle_city_search_text(message: types.Message, state: FSMContext):
                 ])
             inline_kb = InlineKeyboardMarkup(inline_keyboard=buttons)
             await wait_msg.edit_text(t("multiple_found", lang), reply_markup=inline_kb)
+            return
+
+        lat = loc_res["lat"]
+        lon = loc_res["lon"]
+        loc_name = loc_res["name"]
+
+        db.save_user_location(
+            user_id=message.from_user.id,
+            lat=lat,
+            lon=lon,
+            location_name=loc_name,
+            username=message.from_user.username or "",
+            full_name=message.from_user.full_name or "",
+            alert_hour=6
+        )
+
+        await send_weather_with_actions(wait_msg, message.from_user.id, lat, lon, loc_name, is_edit=True)
+
     except Exception as e:
         logger.error(f"Qidiruv xatosi: {e}")
         await wait_msg.edit_text("❌ Error!")
@@ -701,7 +762,8 @@ async def handle_selected_city(call: types.CallbackQuery):
         lon=lon,
         location_name=city_name,
         username=user.username or "",
-        full_name=user.full_name or ""
+        full_name=user.full_name or "",
+        alert_hour=6
     )
 
     await call.answer(f"{city_name}")
@@ -718,7 +780,7 @@ async def handle_alert_settings(message: types.Message):
     lang = db.get_user_lang(message.from_user.id)
     user = db.get_user(message.from_user.id)
     enabled = bool(user["alerts_enabled"]) if user else True
-    hour = user.get("alert_hour", 8) if user else 8
+    hour = user.get("alert_hour", 6) if user else 6
     loc = user.get("location_name", "---") if user else "---"
 
     status_str = "ON 🟢" if enabled else "OFF 🔴"
@@ -733,7 +795,7 @@ async def handle_alert_toggle(call: types.CallbackQuery):
     lang = db.get_user_lang(call.from_user.id)
     turn_on = call.data.endswith(":on")
     user = db.get_user(call.from_user.id)
-    hour = user.get("alert_hour", 8) if user else 8
+    hour = user.get("alert_hour", 6) if user else 6
 
     db.set_user_alerts(call.from_user.id, turn_on, hour)
     await call.answer()

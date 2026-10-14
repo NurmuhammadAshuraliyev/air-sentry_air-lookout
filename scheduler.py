@@ -7,6 +7,7 @@ import asyncio
 from datetime import datetime
 from aiogram import Bot
 import database as db
+from config import now_uz
 from weather_service import get_weather_forecast
 from locales import t
 
@@ -14,11 +15,11 @@ _sent_emergency_alerts = {}
 
 
 async def start_weather_scheduler(bot: Bot):
-    """Har 30 soniyada tekshirib, foydalanuvchilarning belgilangan soatida xabar yuborish."""
-    print("🔔 Avtomatik ob-havo xabarnomalari xizmati ishga tushdi...")
+    """Har 30 soniyada tekshirib, foydalanuvchilarning belgilangan soatida xabar yuborish (standart 06:00)."""
+    print("🔔 Avtomatik ob-havo xabarnomalari xizmati ishga tushdi (Toshkent vaqti bilan)...")
     while True:
         try:
-            now = datetime.now()
+            now = now_uz()
             today_str = now.strftime("%Y-%m-%d")
             current_hour = now.hour
 
@@ -29,14 +30,14 @@ async def start_weather_scheduler(bot: Bot):
                 lat = user["lat"]
                 lon = user["lon"]
                 loc_name = user["location_name"] or "Hudud"
-                alert_hour = user.get("alert_hour", 8)
+                alert_hour = user.get("alert_hour", 6)
                 last_alert_date = user.get("last_daily_alert")
                 lang = user.get("lang", "uz") or "uz"
 
                 if lat is None or lon is None:
                     continue
 
-                # 1. Kunlik rejalashtirilgan ob-havo xabarnomasi
+                # 1. Kunlik rejalashtirilgan ob-havo xabarnomasi (06:00)
                 if current_hour == alert_hour and last_alert_date != today_str:
                     try:
                         weather = await get_weather_forecast(lat, lon, loc_name, lang=lang)
@@ -47,7 +48,7 @@ async def start_weather_scheduler(bot: Bot):
                         msg = f"{morning_title}\n\n{weather['report']}{footer}"
                         await bot.send_message(user_id, msg, parse_mode="Markdown")
                         db.update_last_daily_alert(user_id, today_str)
-                        print(f"[{datetime.now().strftime('%H:%M:%S')}] {user_id} ({lang}) ga kunlik ob-havo yuborildi.")
+                        print(f"[{now_uz().strftime('%H:%M:%S')}] {user_id} ({lang}) ga kunlik ob-havo yuborildi.")
                     except Exception as e:
                         print(f"Xatolik foydalanuvchiga ({user_id}) xabar yuborishda: {e}")
 

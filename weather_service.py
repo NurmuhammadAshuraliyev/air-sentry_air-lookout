@@ -6,6 +6,7 @@ Ob-havo ma'lumotlarini Open-Meteo API orqali olish va ko'p tilli (UZ, RU, EN) ta
 from typing import Dict, Any, List
 import aiohttp
 from datetime import datetime
+from config import now_uz
 from locales import WMO_CODES_I18N, WIND_DIRECTIONS_I18N, t
 from smart_advisor import get_air_quality, analyze_air_quality, generate_smart_lifestyle_advice
 
@@ -292,7 +293,7 @@ async def get_weather_forecast(lat: float, lon: float, location_name: str = "Nom
         f"&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,showers,snowfall,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m"
         f"&hourly=temperature_2m,precipitation_probability,precipitation,rain,snowfall,wind_speed_10m,wind_gusts_10m"
         f"&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max"
-        f"&wind_speed_unit=ms&timezone=auto"
+        f"&wind_speed_unit=ms&timezone=Asia%2FTashkent"
     )
 
     async with aiohttp.ClientSession() as session:
@@ -370,7 +371,7 @@ async def get_weather_forecast(lat: float, lon: float, location_name: str = "Nom
 
     report = (
         f"{t('field_region', lang)} **{location_name}**\n"
-        f"{t('field_time', lang)} {datetime.now().strftime('%H:%M, %d.%m.%Y')}\n"
+        f"{t('field_time', lang)} {now_uz().strftime('%H:%M, %d.%m.%Y')}\n"
         f"➖➖➖➖➖➖➖➖➖➖\n"
         f"{t('field_general', lang)} **{weather_desc}**\n"
         f"{t('field_temp', lang)} **{temp:+.1f}°C** ({t('field_feels_like', lang)}: {app_temp:+.1f}°C)\n"
