@@ -457,3 +457,111 @@ async def get_weather_forecast(lat: float, lon: float, location_name: str = "Nom
         "lon": lon,
         "location_name": location_name,
     }
+
+
+def format_wind_rain_report(weather: dict, location_name: str, lang: str = "uz") -> str:
+    """Shamol va yog'ingarchilik bo'yicha maxsus chuqur hisobot matni."""
+    current = weather.get("current_raw", {})
+    hourly = weather.get("raw_hourly", {})
+
+    wind_speed = weather.get("wind_speed", 0.0)
+    wind_gusts = weather.get("wind_gusts", wind_speed)
+    wind_dir_deg = current.get("wind_direction_10m", 0.0)
+    wind_dir_name = get_wind_direction_text(wind_dir_deg, lang)
+    wind_analysis = analyze_wind_speed(wind_speed, wind_gusts, lang)
+
+    precip = current.get("precipitation", 0.0)
+    rain = current.get("rain", 0.0)
+    snow = current.get("snowfall", 0.0)
+    wmo_code = current.get("weather_code", 0)
+    probs = hourly.get("precipitation_probability", [0])
+    cur_prob = probs[0] if probs else 0
+    precip_analysis = analyze_precipitation(precip, wmo_code, rain, snow, cur_prob, hourly, lang)
+
+    # Haydovchilik va ochiq havo xavfsizligi
+    if wind_speed >= 12.0 or wind_gusts >= 16.0:
+        drive_tip = "⚠️ Shamol kuchli! Katta yuk mashinalari va daraxtlar tagida ehtiyot bo'ling."
+    elif precip > 1.0:
+        drive_tip = "🌧 Yo'llar sirpanchiq bo'lishi mumkin! Masofa va tezlikni saqlang."
+    else:
+        drive_tip = "🚗 Yo'llar quruq va shamol sokin. Harakatlanish uchun xavfsiz ob-havo."
+
+    if lang == "ru":
+        if wind_speed >= 12.0 or wind_gusts >= 16.0:
+            drive_tip = "⚠️ Сильный ветер! Не паркуйтесь под деревьями и рекламными щитами."
+        elif precip > 1.0:
+            drive_tip = "🌧 Дороги могут быть скользкими! Соблюдайте дистанцию."
+        else:
+            drive_tip = "🚗 Дороги сухие, ветер спокойный. Безопасно для вождения."
+
+        report = (
+            f"🌪 **ПОДРОБНЫЙ АНАЛИЗ ВЕТРА И ОСАДКОВ**\n"
+            f"📍 **{location_name}** | 🕒 {now_uz().strftime('%H:%M, %d.%m.%Y')}\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"💨 **ВЕТЕР:**\n"
+            f"• Скорость: **{wind_speed:.1f} м/с** ({(wind_speed*3.6):.1f} км/ч)\n"
+            f"• Порывы ветра: **{wind_gusts:.1f} м/с**\n"
+            f"• Направление: **{wind_dir_name}** ({wind_dir_deg:.0f}°)\n"
+            f"• Оценка: {wind_analysis['badge']} **{wind_analysis['level']}**\n"
+            f"• Совет: _{wind_analysis['advice']}_\n\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"🌧 **ОСАДКИ:**\n"
+            f"• Статус: **{precip_analysis['status_now']}**\n"
+            f"• Вероятность: **{precip_analysis['prob']}**\n"
+            f"• Количество: **{precip:.1f} мм** (Снег: **{snow:.1f} см**)\n"
+            f"• В ближайшие часы:\n_{precip_analysis['upcoming']}_\n\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"🚗 **БЕЗОПАСНОСТЬ:**\n"
+            f"• {drive_tip}"
+        )
+    elif lang == "en":
+        if wind_speed >= 12.0 or wind_gusts >= 16.0:
+            drive_tip = "⚠️ Strong wind! Caution near large vehicles and trees."
+        elif precip > 1.0:
+            drive_tip = "🌧 Roads may be slippery! Maintain distance."
+        else:
+            drive_tip = "🚗 Roads dry, calm wind. Safe driving weather."
+
+        report = (
+            f"🌪 **WIND & PRECIPITATION IN-DEPTH ANALYSIS**\n"
+            f"📍 **{location_name}** | 🕒 {now_uz().strftime('%H:%M, %d.%m.%Y')}\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"💨 **WIND:**\n"
+            f"• Speed: **{wind_speed:.1f} m/s** ({(wind_speed*3.6):.1f} km/h)\n"
+            f"• Gusts: **{wind_gusts:.1f} m/s**\n"
+            f"• Direction: **{wind_dir_name}** ({wind_dir_deg:.0f}°)\n"
+            f"• Status: {wind_analysis['badge']} **{wind_analysis['level']}**\n"
+            f"• Advice: _{wind_analysis['advice']}_\n\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"🌧 **PRECIPITATION:**\n"
+            f"• Status: **{precip_analysis['status_now']}**\n"
+            f"• Probability: **{precip_analysis['prob']}**\n"
+            f"• Amount: **{precip:.1f} mm** (Snow: **{snow:.1f} cm**)\n"
+            f"• Upcoming hours:\n_{precip_analysis['upcoming']}_\n\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"🚗 **SAFETY:**\n"
+            f"• {drive_tip}"
+        )
+    else:
+        report = (
+            f"🌪 **SHAMOL VA YOG'INGARCHILIK CHUQUR TAHLILI**\n"
+            f"📍 **{location_name}** | 🕒 {now_uz().strftime('%H:%M, %d.%m.%Y')}\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"💨 **SHAMOL KO'RSATKICHLARI:**\n"
+            f"• Tezligi: **{wind_speed:.1f} m/s** ({(wind_speed*3.6):.1f} km/soat)\n"
+            f"• Shiddati (zarbalar): **{wind_gusts:.1f} m/s**\n"
+            f"• Yo'nalishi: **{wind_dir_name}** ({wind_dir_deg:.0f}°)\n"
+            f"• Holat: {wind_analysis['badge']} **{wind_analysis['level']}**\n"
+            f"• Tavsiya: _{wind_analysis['advice']}_\n\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"🌧 **YOG'INGARCHILIK TAHLILI:**\n"
+            f"• Holati: **{precip_analysis['status_now']}**\n"
+            f"• Yog'ish ehtimoli: **{precip_analysis['prob']}**\n"
+            f"• Miqdori: **{precip:.1f} mm** (Qor: **{snow:.1f} sm**)\n"
+            f"• Yaqin soatlarda:\n_{precip_analysis['upcoming']}_\n\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"🚗 **HAYDOVCHILAR VA OCHIQ HAVODAGILARGA:**\n"
+            f"• {drive_tip}"
+        )
+
+    return report

@@ -115,20 +115,23 @@ def get_weather_action_inline_keyboard(lat: float, lon: float, lang: str = "uz")
         btn_chart = "📊 24ч График"
         btn_7d = "📅 7 дней"
         btn_advisor = "💡 AI Советы"
+        btn_wind = "🌪 Ветер и Осадки"
         btn_refresh = "🔄 Обновить"
-        btn_regions = "🏙 Выбрать регион"
+        btn_regions = "🏙 Другой регион"
     elif lang == "en":
         btn_chart = "📊 24h Chart"
         btn_7d = "📅 7 Days"
         btn_advisor = "💡 AI Advice"
+        btn_wind = "🌪 Wind & Rain"
         btn_refresh = "🔄 Refresh"
-        btn_regions = "🏙 Choose region"
+        btn_regions = "🏙 Change region"
     else:
         btn_chart = "📊 24h Grafik"
         btn_7d = "📅 7 kunlik"
         btn_advisor = "💡 AI Maslahat"
+        btn_wind = "🌪 Shamol & Yog'in"
         btn_refresh = "🔄 Yangilash"
-        btn_regions = "🏙 Boshqa hududni tanlash"
+        btn_regions = "🏙 Boshqa hudud"
 
     buttons = [
         [
@@ -137,9 +140,10 @@ def get_weather_action_inline_keyboard(lat: float, lon: float, lang: str = "uz")
         ],
         [
             InlineKeyboardButton(text=btn_advisor, callback_data=f"act_ad:{lat_str}:{lon_str}"),
-            InlineKeyboardButton(text=btn_refresh, callback_data=f"act_rf:{lat_str}:{lon_str}"),
+            InlineKeyboardButton(text=btn_wind, callback_data=f"act_wr:{lat_str}:{lon_str}"),
         ],
         [
+            InlineKeyboardButton(text=btn_refresh, callback_data=f"act_rf:{lat_str}:{lon_str}"),
             InlineKeyboardButton(text=btn_regions, callback_data="back_to_regs"),
         ]
     ]

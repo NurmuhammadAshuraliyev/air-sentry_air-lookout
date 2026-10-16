@@ -25,7 +25,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, BufferedIn
 import config
 import database as db
 from regions import REGIONS_DATA, get_nearest_location_name
-from weather_service import get_weather_forecast, search_city_geocoding, format_7day_forecast
+from weather_service import get_weather_forecast, search_city_geocoding, format_7day_forecast, format_wind_rain_report
 from smart_advisor import get_air_quality, analyze_air_quality, generate_smart_lifestyle_advice
 from chart_generator import generate_24h_weather_chart, generate_7day_weather_chart
 from voice_service import transcribe_telegram_voice
@@ -669,6 +669,26 @@ async def handle_inline_refresh_action(call: types.CallbackQuery):
         logger.error(f"Yangilash xatosi: {e}")
 
 
+@dp.callback_query(F.data.startswith("act_wr:"))
+async def handle_inline_wind_rain_action(call: types.CallbackQuery):
+    """Shamol va yog'ingarchilik chuqur tahlili inline tugmasi."""
+    parts = call.data.split(":")
+    lat = float(parts[1])
+    lon = float(parts[2])
+    lang = db.get_user_lang(call.from_user.id)
+    user_info = db.get_user(call.from_user.id)
+    loc_name = user_info.get("location_name", "Hudud") if user_info else "Hudud"
+
+    await call.answer("🌪 Shamol va yog'ingarchilik tahlil qilinmoqda...")
+    try:
+        weather = await get_weather_forecast(lat, lon, loc_name, lang=lang)
+        report_text = format_wind_rain_report(weather, loc_name, lang=lang)
+        await call.message.answer(report_text, parse_mode="Markdown")
+    except Exception as e:
+        logger.error(f"Shamol va yog'in inline xatosi: {e}")
+        await call.message.answer("❌ Ma'lumotlarni olishda xatolik yuz berdi.")
+
+
 @dp.message(F.text.in_([t("btn_wind_rain", "uz"), t("btn_wind_rain", "ru"), t("btn_wind_rain", "en")]))
 async def handle_wind_and_rain_check(message: types.Message):
     """Shamol va yog'ingarchilik bo'yicha tezkor xulosa."""
@@ -680,10 +700,13 @@ async def handle_wind_and_rain_check(message: types.Message):
 
     wait_msg = await message.answer(t("analyzing", lang))
     try:
-        await send_weather_with_actions(wait_msg, message.from_user.id, lat, lon, loc_name, is_edit=True)
+        weather = await get_weather_forecast(lat, lon, loc_name, lang=lang)
+        report_text = format_wind_rain_report(weather, loc_name, lang=lang)
+        kb = get_weather_action_inline_keyboard(lat, lon, lang=lang)
+        await wait_msg.edit_text(report_text, reply_markup=kb, parse_mode="Markdown")
     except Exception as e:
         logger.error(f"Xato: {e}")
-        await wait_msg.edit_text("❌ Error!")
+        await wait_msg.edit_text("❌ Ma'lumot olishda xatolik yuz berdi.")
 
 
 @dp.message(F.text.in_([t("btn_search", "uz"), t("btn_search", "ru"), t("btn_search", "en")]))
