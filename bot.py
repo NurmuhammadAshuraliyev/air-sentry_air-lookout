@@ -285,7 +285,7 @@ async def handle_location(message: types.Message):
             "⏰ Daily morning weather update will be sent at **06:00 AM**."
         )
     )
-    await message.answer(confirm_msg, parse_mode="Markdown")
+    await message.answer(confirm_msg, reply_markup=get_main_keyboard(lang), parse_mode="Markdown")
 
     wait_msg = await message.answer(t("analyzing", lang))
     try:
@@ -861,6 +861,16 @@ async def main():
         return
 
     bot = Bot(token=token)
+
+    from aiogram.types import BotCommand
+    try:
+        await bot.set_my_commands([
+            BotCommand(command="start", description="Bosh menyu / Ob-havo"),
+            BotCommand(command="help", description="Yordam"),
+            BotCommand(command="lang", description="Tilni o'zgartirish"),
+        ])
+    except Exception as e:
+        logger.warning(f"set_my_commands xatosi: {e}")
 
     asyncio.create_task(start_weather_scheduler(bot))
 

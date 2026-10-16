@@ -97,10 +97,12 @@ def get_main_keyboard(lang: str = "uz") -> ReplyKeyboardMarkup:
             ],
         ]
 
+    placeholder = "Kerakli bo'limni tanlang..." if lang == "uz" else ("Выберите раздел..." if lang == "ru" else "Choose an option...")
     return ReplyKeyboardMarkup(
         keyboard=kb,
         resize_keyboard=True,
         is_persistent=True,
+        input_field_placeholder=placeholder,
     )
 
 
@@ -114,16 +116,19 @@ def get_weather_action_inline_keyboard(lat: float, lon: float, lang: str = "uz")
         btn_7d = "📅 7 дней"
         btn_advisor = "💡 AI Советы"
         btn_refresh = "🔄 Обновить"
+        btn_regions = "🏙 Выбрать регион"
     elif lang == "en":
         btn_chart = "📊 24h Chart"
         btn_7d = "📅 7 Days"
         btn_advisor = "💡 AI Advice"
         btn_refresh = "🔄 Refresh"
+        btn_regions = "🏙 Choose region"
     else:
         btn_chart = "📊 24h Grafik"
         btn_7d = "📅 7 kunlik"
         btn_advisor = "💡 AI Maslahat"
         btn_refresh = "🔄 Yangilash"
+        btn_regions = "🏙 Boshqa hududni tanlash"
 
     buttons = [
         [
@@ -133,6 +138,9 @@ def get_weather_action_inline_keyboard(lat: float, lon: float, lang: str = "uz")
         [
             InlineKeyboardButton(text=btn_advisor, callback_data=f"act_ad:{lat_str}:{lon_str}"),
             InlineKeyboardButton(text=btn_refresh, callback_data=f"act_rf:{lat_str}:{lon_str}"),
+        ],
+        [
+            InlineKeyboardButton(text=btn_regions, callback_data="back_to_regs"),
         ]
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
