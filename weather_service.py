@@ -337,62 +337,108 @@ async def get_weather_forecast(lat: float, lon: float, location_name: str = "Nom
         t_max = daily["temperature_2m_max"][1]
         t_min = daily["temperature_2m_min"][1]
         t_wmo = daily["weather_code"][1]
-        t_precip_sum = daily["precipitation_sum"][1]
-        t_wind_max = daily["wind_speed_10m_max"][1]
 
-        unit_speed = "m/s" if lang != "ru" else "м/с"
-        unit_precip = "mm" if lang != "ru" else "мм"
+    # Hayotiy va tushunarli tavsiyalar
+    if app_temp < 0:
+        c_tip = "Issiq qishki kurtka, qalpoq va sharf kiying 🧥"
+    elif app_temp < 10:
+        c_tip = "Issiq kurtka yoki palto kiying, havo ancha salqin 🧥"
+    elif app_temp < 18:
+        c_tip = "Yengil kurtka, sviter yoki qalinroq kiyim ma'qul 🧥"
+    elif app_temp < 25:
+        c_tip = "Yengil qulay kiyim (ko'ylak, futbolka), havo yoqimli 👕"
+    else:
+        c_tip = "Yengil yozgi kiyim kiying, havo issiq 🩳"
 
-        if lang == "ru":
-            tomorrow_text = (
-                f"\n📅 **Завтра:** {wmo_dict.get(t_wmo, '')}\n"
-                f"🌡 Температура: {t_min}°C ... {t_max}°C\n"
-                f"🌧 Осадки: {t_precip_sum:.1f} {unit_precip}\n"
-                f"💨 Макс. ветер: {t_wind_max:.1f} {unit_speed}\n"
-            )
-        elif lang == "en":
-            tomorrow_text = (
-                f"\n📅 **Tomorrow:** {wmo_dict.get(t_wmo, '')}\n"
-                f"🌡 Temperature: {t_min}°C ... {t_max}°C\n"
-                f"🌧 Precipitation: {t_precip_sum:.1f} mm\n"
-                f"💨 Max wind: {t_wind_max:.1f} m/s\n"
-            )
+    if precip > 0 or cur_prob >= 40:
+        u_tip = "Soyabon yoki plash olishni unutmang ☂️"
+    else:
+        u_tip = "Soyabon kerak emas, osmon ochiq ☀️"
+
+    if lang == "ru":
+        if app_temp < 0:
+            c_tip = "Теплая зимняя куртка, шапка и шарф 🧥"
+        elif app_temp < 10:
+            c_tip = "Теплая куртка или пальто, на улице холодно 🧥"
+        elif app_temp < 18:
+            c_tip = "Легкая куртка или свитер 🧥"
+        elif app_temp < 25:
+            c_tip = "Легкая комфортная одежда (рубашка, футболка) 👕"
         else:
-            tomorrow_text = (
-                f"\n📅 **Ertaga:** {wmo_dict.get(t_wmo, '')}\n"
-                f"🌡 Harorat: {t_min}°C ... {t_max}°C\n"
-                f"🌧 Yog'ingarchilik miqdori: {t_precip_sum:.1f} mm\n"
-                f"💨 Maksimal shamol: {t_wind_max:.1f} m/s\n"
-            )
+            c_tip = "Легкая летняя одежда, жарко 🩳"
 
-    unit_hpa = "hPa" if lang != "ru" else "гПа"
-    unit_kmh = "km/h" if lang == "en" else ("км/ч" if lang == "ru" else "km/soat")
-    unit_ms = "m/s" if lang != "ru" else "м/с"
+        if precip > 0 or cur_prob >= 40:
+            u_tip = "Возьмите зонт, возможен дождь ☂️"
+        else:
+            u_tip = "Зонт не нужен, осадков нет ☀️"
+    elif lang == "en":
+        if app_temp < 0:
+            c_tip = "Heavy winter coat, warm hat and scarf 🧥"
+        elif app_temp < 10:
+            c_tip = "Warm jacket or coat, it feels cold 🧥"
+        elif app_temp < 18:
+            c_tip = "Light jacket or sweater 🧥"
+        elif app_temp < 25:
+            c_tip = "Casual comfortable wear (t-shirt/shirt) 👕"
+        else:
+            c_tip = "Light summer clothes, warm weather 🩳"
 
-    report = (
-        f"{t('field_region', lang)} **{location_name}**\n"
-        f"{t('field_time', lang)} {now_uz().strftime('%H:%M, %d.%m.%Y')}\n"
-        f"➖➖➖➖➖➖➖➖➖➖\n"
-        f"{t('field_general', lang)} **{weather_desc}**\n"
-        f"{t('field_temp', lang)} **{temp:+.1f}°C** ({t('field_feels_like', lang)}: {app_temp:+.1f}°C)\n"
-        f"{t('field_humidity', lang)} **{humidity}%**\n"
-        f"{t('field_pressure', lang)} **{pressure:.0f} {unit_hpa}**\n\n"
-        f"━━━━━━━━━━━━━━━━━━\n"
-        f"**{t('sec_wind', lang)}**\n"
-        f"• {t('field_wind_speed', lang)} **{wind_speed:.1f} {unit_ms}** ({(wind_speed * 3.6):.1f} {unit_kmh})\n"
-        f"• {t('field_wind_gusts', lang)} **{wind_gusts:.1f} {unit_ms}**\n"
-        f"• {t('field_wind_dir', lang)} **{wind_dir_name}** ({wind_dir_deg:.0f}°)\n"
-        f"• {t('field_wind_status', lang)} {wind_analysis['badge']} **{wind_analysis['level']}**\n"
-        f"• {t('field_advice', lang)} _{wind_analysis['advice']}_\n\n"
-        f"━━━━━━━━━━━━━━━━━━\n"
-        f"**{t('sec_precip', lang)}**\n"
-        f"• {t('field_precip_status', lang)} **{precip_analysis['status_now']}**\n"
-        f"• {t('field_precip_prob', lang)} **{precip_analysis['prob']}**\n"
-        f"• {t('field_precip_amount', lang)} **{precip:.1f} mm** ({t('field_snow', lang)}: {snow:.1f} cm)\n"
-        f"• {t('field_forecast', lang)}\n_{precip_analysis['upcoming']}_\n"
-        f"━━━━━━━━━━━━━━━━━━"
-        f"{tomorrow_text}"
-    )
+        if precip > 0 or cur_prob >= 40:
+            u_tip = "Take an umbrella, rain is likely ☂️"
+        else:
+            u_tip = "No umbrella needed, dry weather ☀️"
+
+    if lang == "ru":
+        tomorrow_header = f"\n━━━━━━━━━━━━━━━━━━\n📅 **Завтра:** {wmo_dict.get(t_wmo, '')}\n🌡 **{t_min:+.0f}°C ... {t_max:+.0f}°C**" if daily and len(daily.get("time", [])) > 1 else ""
+        report = (
+            f"📍 **{location_name}** | 🕒 {now_uz().strftime('%H:%M, %d.%m.%Y')}\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"{weather_desc}\n"
+            f"🌡 Температура: **{temp:+.1f}°C** (ощущается как: **{app_temp:+.1f}°C**)\n"
+            f"💨 Ветер: {wind_analysis['badge']} **{wind_analysis['level']}** ({wind_speed:.1f} м/с)\n"
+            f"🌧 Осадки: **{precip_analysis['status_now']}** ({precip_analysis['prob']})\n"
+            f"💧 Влажность: **{humidity}%**\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"💡 **ПОЛЕЗНЫЙ СОВЕТ:**\n"
+            f"• 🧥 {c_tip}\n"
+            f"• ☂️ {u_tip}\n"
+            f"• 💨 _{wind_analysis['advice']}_"
+            f"{tomorrow_header}"
+        )
+    elif lang == "en":
+        tomorrow_header = f"\n━━━━━━━━━━━━━━━━━━\n📅 **Tomorrow:** {wmo_dict.get(t_wmo, '')}\n🌡 **{t_min:+.0f}°C ... {t_max:+.0f}°C**" if daily and len(daily.get("time", [])) > 1 else ""
+        report = (
+            f"📍 **{location_name}** | 🕒 {now_uz().strftime('%H:%M, %d.%m.%Y')}\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"{weather_desc}\n"
+            f"🌡 Temperature: **{temp:+.1f}°C** (feels like: **{app_temp:+.1f}°C**)\n"
+            f"💨 Wind: {wind_analysis['badge']} **{wind_analysis['level']}** ({wind_speed:.1f} m/s)\n"
+            f"🌧 Precipitation: **{precip_analysis['status_now']}** ({precip_analysis['prob']})\n"
+            f"💧 Humidity: **{humidity}%**\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"💡 **DAILY TIP:**\n"
+            f"• 🧥 {c_tip}\n"
+            f"• ☂️ {u_tip}\n"
+            f"• 💨 _{wind_analysis['advice']}_"
+            f"{tomorrow_header}"
+        )
+    else:
+        tomorrow_header = f"\n━━━━━━━━━━━━━━━━━━\n📅 **Ertaga:** {wmo_dict.get(t_wmo, '')}\n🌡 **{t_min:+.0f}°C ... {t_max:+.0f}°C**" if daily and len(daily.get("time", [])) > 1 else ""
+        report = (
+            f"📍 **{location_name}** | 🕒 {now_uz().strftime('%H:%M, %d.%m.%Y')}\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"{weather_desc}\n"
+            f"🌡 Harorat: **{temp:+.1f}°C** (his qilinishi: **{app_temp:+.1f}°C**)\n"
+            f"💨 Shamol: {wind_analysis['badge']} **{wind_analysis['level']}** ({wind_speed:.1f} m/s)\n"
+            f"🌧 Yog'ingarchilik: **{precip_analysis['status_now']}** ({precip_analysis['prob']})\n"
+            f"💧 Namlik: **{humidity}%**\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"💡 **KUNLIK TAVSIYA:**\n"
+            f"• 🧥 {c_tip}\n"
+            f"• ☂️ {u_tip}\n"
+            f"• 💨 _{wind_analysis['advice']}_"
+            f"{tomorrow_header}"
+        )
 
     return {
         "report": report,

@@ -24,7 +24,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, BufferedIn
 
 import config
 import database as db
-from regions import REGIONS_DATA
+from regions import REGIONS_DATA, get_nearest_location_name
 from weather_service import get_weather_forecast, search_city_geocoding, format_7day_forecast
 from smart_advisor import get_air_quality, analyze_air_quality, generate_smart_lifestyle_advice
 from chart_generator import generate_24h_weather_chart, generate_7day_weather_chart
@@ -262,7 +262,7 @@ async def handle_location(message: types.Message):
     lang = db.get_user_lang(message.from_user.id)
     lat = message.location.latitude
     lon = message.location.longitude
-    loc_name = "GPS (" + ("Sizning joylashuvingiz" if lang == "uz" else ("Ваша локация" if lang == "ru" else "Your location")) + ")"
+    loc_name = get_nearest_location_name(lat, lon)
 
     db.save_user_location(
         user_id=message.from_user.id,
@@ -275,13 +275,13 @@ async def handle_location(message: types.Message):
     )
 
     confirm_msg = (
-        "📍 **Joylashuvingiz muvaffaqiyatli saqlandi!**\n"
+        f"📍 **Joylashuvingiz aniqlandi:** {loc_name}\n"
         "⏰ Har kuni ertalab soat **06:00** da sizga ushbu hudud ob-havosi avtomatik yuboriladi."
         if lang == "uz" else (
-            "📍 **Ваша локация успешно сохранена!**\n"
+            f"📍 **Ваша локация определена:** {loc_name}\n"
             "⏰ Каждое утро в **06:00** вам будет автоматически приходить прогноз погоды."
             if lang == "ru" else
-            "📍 **Location saved successfully!**\n"
+            f"📍 **Your location detected:** {loc_name}\n"
             "⏰ Daily morning weather update will be sent at **06:00 AM**."
         )
     )

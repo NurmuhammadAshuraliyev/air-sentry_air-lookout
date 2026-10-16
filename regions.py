@@ -267,3 +267,33 @@ REGIONS_DATA = {
 
 # Eski moslik uchun (viloyat markazlari ro'yxati)
 REGIONS = {name: data["center"] for name, data in REGIONS_DATA.items()}
+
+
+def get_nearest_location_name(lat: float, lon: float) -> str:
+    """Berilgan koordinataga eng yaqin O'zbekiston hudud yoki tuman nomini topish."""
+    import math
+
+    min_dist = float("inf")
+    best_name = "Joylashuvingiz"
+
+    for reg_name, reg_info in REGIONS_DATA.items():
+        # Viloyat markazi
+        c = reg_info["center"]
+        d = (c["lat"] - lat) ** 2 + (c["lon"] - lon) ** 2
+        if d < min_dist:
+            min_dist = d
+            best_name = reg_name
+
+        # Tumanlar
+        for dist_name, dist_info in reg_info.get("districts", {}).items():
+            d2 = (dist_info["lat"] - lat) ** 2 + (dist_info["lon"] - lon) ** 2
+            if d2 < min_dist:
+                min_dist = d2
+                best_name = f"{dist_name} ({reg_name})"
+
+    # Agar 80 km ichida bo'lsa, aniq nomini qaytaradi
+    km_approx = math.sqrt(min_dist) * 111.0
+    if km_approx < 80.0:
+        return best_name
+    return "Sizning joylashuvingiz"
+
