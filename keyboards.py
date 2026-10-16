@@ -101,7 +101,7 @@ def get_main_keyboard(lang: str = "uz") -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=kb,
         resize_keyboard=True,
-        is_persistent=True,
+        is_persistent=False,
         input_field_placeholder=placeholder,
     )
 
