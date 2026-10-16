@@ -13,13 +13,28 @@ from datetime import datetime
 
 def generate_24h_weather_chart(hourly_data: dict, location_name: str, lang: str = "uz") -> io.BytesIO:
     """
-    24 soatlik prognoz uchun yuqori sifatli zamonaviy Dark Mode infografika grafigi.
+    Hozirgi vaqtdan boshlab keyingi to'liq 24 soatlik prognoz uchun yuqori sifatli Dark Mode infografika grafigi.
     Qaytaradi: io.BytesIO (PNG rasm baytlari).
     """
-    times_raw = hourly_data.get("time", [])[:24]
-    temps = hourly_data.get("temperature_2m", [])[:24]
-    precips = hourly_data.get("precipitation", [])[:24]
-    wind_speeds = hourly_data.get("wind_speed_10m", [])[:24]
+    from config import now_uz
+
+    all_times = hourly_data.get("time", [])
+    now_str = now_uz().strftime("%Y-%m-%dT%H:00")
+
+    # Hozirgi soat indeksini topamiz (o'tgan soatlarni tashlab, kelgusi 24 soatni olamiz)
+    start_idx = 0
+    for i, t in enumerate(all_times):
+        if t >= now_str:
+            start_idx = i
+            break
+
+    if start_idx + 24 > len(all_times):
+        start_idx = max(0, len(all_times) - 24)
+
+    times_raw = all_times[start_idx : start_idx + 24]
+    temps = hourly_data.get("temperature_2m", [])[start_idx : start_idx + 24]
+    precips = hourly_data.get("precipitation", [])[start_idx : start_idx + 24]
+    wind_speeds = hourly_data.get("wind_speed_10m", [])[start_idx : start_idx + 24]
 
     hours = [t.split("T")[-1] for t in times_raw]
     x_indices = list(range(len(hours)))
@@ -62,10 +77,24 @@ def generate_24h_weather_chart(hourly_data: dict, location_name: str, lang: str 
     max_temp = max(temps) if temps else 25
     ax1.fill_between(x_indices, temps, min_temp - 2, color=temp_color, alpha=0.15)
 
+    # Harorat ko'rsatkichlari (har 2-3 soatda)
     for i in range(0, len(hours), 2):
         ax1.annotate(
             f"{temps[i]:+.0f}°",
             (i, temps[i]),
+            textcoords="offset points",
+            xytext=(0, 9),
+            ha="center",
+            fontsize=9.5,
+            fontweight="bold",
+            color="#ffffff"
+        )
+    # Oxirgi nuqtaning ham haroratini aniq yozamiz
+    if (len(hours) - 1) % 2 != 0:
+        last_i = len(hours) - 1
+        ax1.annotate(
+            f"{temps[last_i]:+.0f}°",
+            (last_i, temps[last_i]),
             textcoords="offset points",
             xytext=(0, 9),
             ha="center",
@@ -86,8 +115,24 @@ def generate_24h_weather_chart(hourly_data: dict, location_name: str, lang: str 
     )
 
     ax1.set_ylim(min_temp - 4, max_temp + 5)
-    ax1.set_xticks(range(0, len(hours), 3))
-    ax1.set_xticklabels([hours[i] for i in range(0, len(hours), 3)], color="#8b949e", fontsize=10)
+
+    # X o'qi belgilari (Har 3 soatda va oxirgi 24-soatda)
+    tick_indices = list(range(0, len(hours), 3))
+    if (len(hours) - 1) not in tick_indices:
+        tick_indices.append(len(hours) - 1)
+
+    labels = []
+    for idx in tick_indices:
+        h = hours[idx]
+        if idx == 0:
+            labels.append(f"Hozir\n{h}" if lang == "uz" else (f"Сейчас\n{h}" if lang == "ru" else f"Now\n{h}"))
+        elif idx == len(hours) - 1:
+            labels.append(f"Ertaga\n{h}" if lang == "uz" else (f"Завтра\n{h}" if lang == "ru" else f"Tmrw\n{h}"))
+        else:
+            labels.append(h)
+
+    ax1.set_xticks(tick_indices)
+    ax1.set_xticklabels(labels, color="#8b949e", fontsize=9.5)
     ax1.tick_params(colors="#8b949e", labelsize=9)
 
     for spine in ax1.spines.values():
@@ -95,16 +140,16 @@ def generate_24h_weather_chart(hourly_data: dict, location_name: str, lang: str 
 
     ax1.grid(True, linestyle=":", alpha=0.25, color="#8b949e")
 
-    title_text = f"{location_name} — 24H Forecast"
-    if lang == "uz":
-        title_text = f"{location_name} — 24 soatlik ob-havo prognozi"
-    elif lang == "ru":
-        title_text = f"{location_name} — Прогноз на 24 часа"
+    title_text = f"{location_name} — Keyingi 24 soatlik ob-havo prognozi"
+    if lang == "ru":
+        title_text = f"{location_name} — Прогноз на следующие 24 часа"
+    elif lang == "en":
+        title_text = f"{location_name} — Next 24 Hours Forecast"
 
     plt.title(
         title_text,
         color="#f0f6fc",
-        fontsize=13,
+        fontsize=12.5,
         fontweight="bold",
         pad=16
     )
