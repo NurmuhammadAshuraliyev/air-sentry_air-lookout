@@ -1,4 +1,4 @@
-name: Deploy to Server (Auto CI/CD)
+name: Deploy to Server (Auto CI/CD).
 
 on:
   push:
